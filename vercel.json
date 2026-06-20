@@ -1,0 +1,20 @@
+{
+  "headers": [
+    {
+      "source": "/payload.exe",
+      "headers": [
+        {"key":"Content-Type","value":"application/octet-stream"},
+        {"key":"Content-Disposition","value":"attachment; filename=\"payload.exe\""},
+        {"key":"X-Content-Type-Options","value":"nosniff"},
+        {"key":"Cache-Control","value":"no-store"}
+      ]
+    },
+    {
+      "source": "/(.*)",
+      "headers": [
+        {"key":"Cross-Origin-Opener-Policy","value":"same-origin-allow-popups"},
+        {"key":"Permissions-Policy","value":"autoplay=*"}
+      ]
+    }
+  ]
+}

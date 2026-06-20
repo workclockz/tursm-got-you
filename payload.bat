@@ -1,0 +1,11 @@
+@echo off
+title TURSM
+color 0C
+:loop
+msg * "@TURSM GOT YOU :)"
+msg * "TURSM IS IN YOUR FILES"
+msg * "TURSM IS INSIDE YOUR COMPUTER"
+msg * "TURSM IS ROUTING YOUR NETWORK DEVICES"
+msg * "TURSM IS GRABBING EVERY COOKIE"
+msg * "TURSM OWNS YOU NOW :)"
+goto loop
